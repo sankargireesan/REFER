@@ -4,6 +4,8 @@ from gensim import models
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import RegexpTokenizer
+import os
+import shutil
 
 filename = '../processedreview/ReviewData1.csv'
 temp_file = "../model/LDAReplacementmodelTFIDF/"
@@ -60,6 +62,12 @@ if __name__ == '__main__':
     corpus_tfidf = tfidf[bow_corpus]
 
     lda_model = gensim.models.LdaMulticore(corpus_tfidf, num_topics=50, id2word=dictionary, passes=50, workers=4)
+
+    if os.path.exists(temp_file):
+        shutil.rmtree(temp_file)
+
+    if not os.path.exists(temp_file):
+        os.makedirs(temp_file)
 
     dictionary.save(temp_file + "dictionary")
     lda_model.save(temp_file + "model")
