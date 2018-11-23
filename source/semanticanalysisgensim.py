@@ -32,6 +32,8 @@ def preprocess_data(doc_set):
     # loop through document list
     for i in doc_set:
         # clean and tokenize document string
+        if type(i) is not str:
+            continue
         raw = i.lower()
         tokens = tokenizer.tokenize(raw)
         # remove stop words from tokens
