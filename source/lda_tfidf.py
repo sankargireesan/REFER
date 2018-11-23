@@ -1,15 +1,16 @@
 import datetime
-import os
-import shutil
 
 import gensim
 import pandas as pd
+from gensim import models
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import RegexpTokenizer
+import os
+import shutil
 
 filename = '../processedreview/ReviewData1.csv'
-temp_file = "../model/LDAReplacementmodel/"
+temp_file = "../model/LDAReplacementmodelTFIDF/"
 
 
 def preprocess_data(doc_set):
@@ -59,12 +60,12 @@ if __name__ == '__main__':
 
     bow_corpus = [dictionary.doc2bow(doc) for doc in processed_docs]
 
-    lda_model = gensim.models.LdaMulticore(bow_corpus, num_topics=50, id2word=dictionary, passes=50, workers=4)
+    # lda_model = gensim.models.LdaMulticore(bow_corpus, num_topics=10, id2word=dictionary, passes=50, workers=4)
 
-    # tfidf = models.TfidfModel(bow_corpus)
-    # corpus_tfidf = tfidf[bow_corpus]
-    #
-    # lda_model = gensim.models.LdaMulticore(corpus_tfidf, num_topics=50, id2word=dictionary, passes=50, workers=4)
+    tfidf = models.TfidfModel(bow_corpus)
+    corpus_tfidf = tfidf[bow_corpus]
+
+    lda_model = gensim.models.LdaMulticore(corpus_tfidf, num_topics=50, id2word=dictionary, passes=50, workers=4)
 
     if os.path.exists(temp_file):
         shutil.rmtree(temp_file)

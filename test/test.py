@@ -99,7 +99,7 @@ for key in dict:
     topic_dict = {}
     count_dict = {}
     del value[100:]
-    
+
     for v in value:
         count += 1
         review, r = v.split('|')
