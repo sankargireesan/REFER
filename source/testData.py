@@ -3,20 +3,24 @@ import json
 
 import pandas as pd
 
-with open('../data/yelp_academic_dataset_business.json', encoding='UTF8', newline='') as f:
+restaurantRequired = 10
+
+with open('../data/yelp_academic_dataset_business.json', encoding='UTF8') as f:
     count = 0
     business_set = set()
     for line in f:
         js = json.loads(line)
-        if js["categories"] and any(word in 'Restaurants' for word in js["categories"].split()):
+        if js["review_count"] > 100 and js["categories"] and any(word in 'Restaurants' for word in js["categories"].split()):
             count += 1
             business_set.add(js["business_id"])
+
+        if count > 10:
+            break
 print('#business :', count)
 
-review_data = open('../processedreview/ReviewData1.csv', 'w', encoding='UTF8')
+review_data = open('../testreview/testreview.csv', 'w', encoding='UTF8', newline='')
 csvwriter = csv.writer(review_data)
 with open('../data/yelp_academic_dataset_review.json', encoding='UTF8') as f:
-    count = 0
 
     positivedataDF = pd.read_csv('../pn-words/positive-words.csv', header=None)[0]
     negativedataDF = pd.read_csv('../pn-words/negative-words.csv', header=None)[0]
@@ -66,8 +70,8 @@ with open('../data/yelp_academic_dataset_review.json', encoding='UTF8') as f:
                 # print('here4')
                 else:
                     result += ' ' + token
+            result = str(js["business_id"]) + '|' + result + '|' + str(js["stars"])
             csvwriter.writerow([result])
             count += 1
-        if count > 300000:
-            break
+
 print(count)

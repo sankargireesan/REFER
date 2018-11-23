@@ -1,3 +1,5 @@
+import datetime
+
 import gensim
 import pandas as pd
 from gensim import models
@@ -41,16 +43,18 @@ def preprocess_data(doc_set):
 
 if __name__ == '__main__':
 
+    print('start' + str(datetime.datetime.now()))
+
     documents = pd.read_csv(filename, delimiter='\n', header=None)[0]
     print('reading from file completed')
     processed_docs = preprocess_data(documents)
 
-    print('pre processing completed')
+    print('pre processing completed' + str(datetime.datetime.now()))
 
     dictionary = gensim.corpora.Dictionary(processed_docs)
     dictionary.filter_extremes(no_below=15, no_above=1.0, keep_n=100000)
 
-    print('Gensim dictionary creation completed')
+    print('Gensim dictionary creation completed' + str(datetime.datetime.now()))
 
     bow_corpus = [dictionary.doc2bow(doc) for doc in processed_docs]
 
@@ -66,3 +70,5 @@ if __name__ == '__main__':
 
     for idx, topic in lda_model.print_topics(-1):
         print('Topic: {} Word: {}'.format(idx, topic))
+
+    print('end' + str(datetime.datetime.now()))

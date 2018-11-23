@@ -1,72 +1,31 @@
+import csv
 import itertools
 from collections import Counter
 
-import gensim
-import nltk
-import numpy as np
-import pandas as pd
 from gensim import models, corpora
-from nltk.stem import WordNetLemmatizer, SnowballStemmer
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+from nltk.tokenize import RegexpTokenizer
 
-np.random.seed(2018)
-nltk.download('wordnet')
-nltk.download('stopwords')
-
-wordnet = WordNetLemmatizer()
-stemmer = SnowballStemmer("english")
-
-temp_file = "../model/LDAReplacementmodelTFIDF/"
+temp_file = "../finalModel/LDAReplacementmodelTFIDF/"
+testreview = "../testreview/testreview.csv"
 
 
-def lemmatize_stemming(text):
-    return stemmer.stem(wordnet.lemmatize(text, pos='v'))
+def preprocess_data(review):
+    # initialize regex tokenizer
+    tokenizer = RegexpTokenizer(r'\w+')
+    # create English stop words list
+    en_stop = set(stopwords.words('english'))
+    # Create p_stemmer of class PorterStemmer
+    p_stemmer = PorterStemmer()
 
-
-def replaceWords(text):
-    positivedataDF = pd.read_csv('../pn-words/positive-words.csv', header=None)[0]
-    negativedataDF = pd.read_csv('../pn-words/negative-words.csv', header=None)[0]
-
-    positivedata = set(positivedataDF)
-    negativedata = set(negativedataDF)
-    notFlag = False
-    result = ''
-    for token in text.split():
-        if token == 'not':
-            notFlag = True
-            # print('here0')
-            continue
-
-        if not notFlag and token in positivedata:
-            result += ' POSITIVEREVIEW'
-            notFlag = False
-            # print('here1')
-
-        elif notFlag and token in positivedata:
-            result += ' NEGATIVEREVIEW'
-            notFlag = False
-            # print('here2')
-
-        elif not notFlag and token in negativedata:
-            result += ' NEGATIVEREVIEW'
-            notFlag = False
-            # print('here3')
-
-        elif notFlag and token in negativedata:
-            result += ' POSITIVEREVIEW'
-            notFlag = False
-            # print('here4')
-        else:
-            result += ' ' + token
-
-    return result
-
-
-def preprocess(text):
-    result = []
-    for token in gensim.utils.simple_preprocess(text):
-        if token not in gensim.parsing.preprocessing.STOPWORDS and len(token) > 2:
-            result.append(lemmatize_stemming(token))
-    return result
+    raw = review.lower()
+    tokens = tokenizer.tokenize(raw)
+    # remove stop words from tokens
+    stopped_tokens = [i for i in tokens if not i in en_stop]
+    # stem tokens
+    stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
+    return stemmed_tokens
 
 
 def print_topic_terms(model, num_topics=10, num_words=10, unique=False):
@@ -103,17 +62,64 @@ def print_topic_terms(model, num_topics=10, num_words=10, unique=False):
             print('{}\t{}'.format(topic, topic_terms))
 
 
+def get_review_topics(model, cur_dict, cur_rev):
+    ques_vec = cur_dict.doc2bow(preprocess_data(cur_rev))
+    topic_vec = model[ques_vec]
+    return topic_vec
+
+
+dictionary = corpora.Dictionary.load(temp_file + "dictionary")
 lda_model = models.LdaModel.load(temp_file + "model")
 
 print_topic_terms(lda_model, num_topics=50, num_words=10, unique=False)
 
-dictionary = corpora.Dictionary.load(temp_file + "dictionary")
+dict = {}
+with open(testreview) as csvfile:
+    readCSV = csv.reader(csvfile, delimiter='|')
+    for row in readCSV:
+        if len(row) == 0:
+            continue
+        key = row[0]
+        val = row[1] + '|' + row[2]
+        if key in dict:
+            temp = dict[key]
+            temp.append(val)
+            dict[key] = temp
+        else:
+            temp = []
+            temp.append(val)
+            dict[key] = temp
 
-question = 'service is bad'
-important_words = preprocess(replaceWords(question.lower()))
 
-ques_vec = dictionary.doc2bow(important_words)
-topic_vec = lda_model[ques_vec]
+s = set()
+for key in dict:
+    count = 0
+    total_rating = 0
+    value = dict[key]
+    topic_dict = {}
+    count_dict = {}
+    del value[100:]
+    
+    for v in value:
+        count += 1
+        review, r = v.split('|')
+        rating = int(r)
+        total_rating += rating
 
-for doc in topic_vec:
-    print(doc)
+        topic_vec = get_review_topics(lda_model, dictionary, review)
+        for doc in topic_vec:
+            if doc[1] > 0.2:
+                if doc[0] in topic_dict:
+                    topic_dict[doc[0]] += rating
+                    count_dict[doc[0]] += 1
+                else:
+                    topic_dict[doc[0]] = rating
+                    count_dict[doc[0]] = 1
+
+    print("avg_rating  = " + str(total_rating / count))
+    for k in topic_dict:
+        if count_dict[k] > 30:
+            print(str(k) + " " + str(topic_dict[k] / count_dict[k]))
+            s.add(k)
+
+print(sorted(s))
