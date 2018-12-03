@@ -7,7 +7,7 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import RegexpTokenizer
 
-temp_file = "../finalModel/LDAReplacementmodelTFIDF/"
+temp_file = "../model/LDAPositivemodel_25/"
 testreview = "../testreview/testreview.csv"
 
 
@@ -28,14 +28,14 @@ def preprocess_data(review):
     return stemmed_tokens
 
 
-def print_topic_terms(model, num_topics=10, num_words=10, unique=False):
+def print_topic_terms(model, num_topics=50, num_words=10, unique=False):
     results = model.print_topics(num_topics=num_topics, num_words=num_words)
     if not unique:
         print('=============================== Terms Per Topic ===============================')
         for r in results:
             topic = r[0]
             term_list = r[1]
-
+            # print(term_list)
             term_list = term_list.split('"')[1::2]
             topic_terms = [term for term in term_list]
             print('{}\t{}'.format(topic, topic_terms))
@@ -71,7 +71,9 @@ def get_review_topics(model, cur_dict, cur_rev):
 dictionary = corpora.Dictionary.load(temp_file + "dictionary")
 lda_model = models.LdaModel.load(temp_file + "model")
 
-print_topic_terms(lda_model, num_topics=50, num_words=10, unique=False)
+print_topic_terms(lda_model)
+
+# print(lda_model.print_topics(num_topics=50, num_words=10))
 
 dict = {}
 with open(testreview) as csvfile:
@@ -107,18 +109,18 @@ for key in dict:
         total_rating += rating
 
         topic_vec = get_review_topics(lda_model, dictionary, review)
+        # print(topic_vec)
         for doc in topic_vec:
             if doc[1] > 0.2:
                 if doc[0] in topic_dict:
-                    topic_dict[doc[0]] += rating
+                    topic_dict[doc[0]] += rating+1
                     count_dict[doc[0]] += 1
                 else:
-                    topic_dict[doc[0]] = rating
+                    topic_dict[doc[0]] = rating+1
                     count_dict[doc[0]] = 1
-
     print("avg_rating  = " + str(total_rating / count))
     for k in topic_dict:
-        if count_dict[k] > 30:
+        if count_dict[k] > 10:
             print(str(k) + " " + str(topic_dict[k] / count_dict[k]))
             s.add(k)
 
